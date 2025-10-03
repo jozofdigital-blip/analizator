@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Футбольный анализатор матчей | Gemini API</title>
+    <title>Футбольный анализатор матчей | GigaChat API</title>
     <style>
-        /* Стили остаются прежними, как в вашей предыдущей версии */
         :root {
             --primary: #2e7d32;
             --primary-light: #4caf50;
@@ -201,6 +200,21 @@
             color: var(--gray);
         }
         
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         .error-message {
             background: #ffebee;
             color: #c62828;
@@ -218,17 +232,54 @@
             margin: 10px 0;
             animation: fadeIn 0.5s;
         }
+        
+        .api-config {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .api-config h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .config-status {
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .status-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>⚽ Футбольный анализатор матчей</h1>
-            <div class="subtitle">Автоматический анализ по шаблону v2.0 с Gemini API</div>
+            <div class="subtitle">Автоматический анализ по шаблону v2.0 с GigaChat API</div>
         </header>
         
         <div class="main-content">
             <div class="input-section">
+                <div class="api-config">
+                    <h3>🔑 Настройки GigaChat API</h3>
+                    <p>Статус: <span id="apiStatus" class="config-status status-error">API ключ не настроен</span></p>
+                    <p><small>Замените "ВАШ_API_КЛЮЧ" в коде на ваш настоящий ключ от GigaChat</small></p>
+                </div>
+                
                 <div class="form-group">
                     <label for="matchInput">Матч для анализа</label>
                     <input type="text" id="matchInput" placeholder="Например: Борнмут-Фулхэм 3 октября">
@@ -248,8 +299,8 @@
                 </button>
                 
                 <div class="instructions">
-                    <h3>✅ Теперь работает на Gemini API!</h3>
-                    <p>Система сама отправит запрос в Google AI и покажет результат</p>
+                    <h3>✅ Работает на GigaChat API!</h3>
+                    <p>Система сама отправит запрос в GigaChat и покажет результат</p>
                 </div>
 
                 <div class="form-group">
@@ -284,6 +335,7 @@
                 </div>
                 
                 <div id="loadingIndicator" class="loading hidden">
+                    <div class="loading-spinner"></div>
                     <h3>⏳ Анализируем матч...</h3>
                     <p>Это займет несколько секунд</p>
                 </div>
@@ -299,9 +351,15 @@
     </div>
 
     <script>
-        // 🔑 ВАЖНО: ЗАМЕНИТЕ ЭТОТ КЛЮЧ НА ВАШ НАСТОЯЩИЙ API KEY ИЗ GOOGLE AI STUDIO
-        const API_KEY = "AIzaSyBEewIrowrCu8gXXKI5Lb5fK6IYbfIZQ34";
-        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+        // 🔑 НАСТРОЙКИ GIGACHAT API
+        // ЗАМЕНИТЕ "ВАШ_API_КЛЮЧ" на ваш настоящий ключ от GigaChat
+        const GIGACHAT_CONFIG = {
+            AUTH_KEY: "MDE5OWFhODktZTJiNC03OGZmLWI0YzItMzA0MmI4YzIyNTI0OmZjODYxMjY1LWZjMjUtNGY3Yy1hNjQ0LTdhYjc3ZDc1MWNhOQ==", // 🔑 ЗАМЕНИТЕ ЭТУ СТРОКУ
+            TOKEN_URL: "https://ngw.devices.sberbank.ru:9443/api/v2/oauth",
+            API_URL: "https://gigachat.devices.sberbank.ru/api/v1/chat/completions",
+            MODEL: "GigaChat-2.0", // Можно изменить на GigaChat-2-Pro, GigaChat-2-Max
+            SCOPE: "GIGACHAT_API_PERS"
+        };
 
         document.addEventListener('DOMContentLoaded', function() {
             const matchInput = document.getElementById('matchInput');
@@ -313,6 +371,13 @@
             const summaryContent = document.getElementById('summaryContent');
             const betsContent = document.getElementById('betsContent');
             const historyList = document.getElementById('historyList');
+            const apiStatus = document.getElementById('apiStatus');
+            
+            // Проверка API ключа
+            if (GIGACHAT_CONFIG.AUTH_KEY && GIGACHAT_CONFIG.AUTH_KEY !== "ВАШ_API_КЛЮЧ") {
+                apiStatus.textContent = "API ключ настроен";
+                apiStatus.className = "config-status status-success";
+            }
             
             let history = JSON.parse(localStorage.getItem('footballAnalysisHistory')) || [];
             renderHistory();
@@ -325,8 +390,8 @@
                     return;
                 }
 
-                if (API_KEY === "ВАШ_API_КЛЮЧ") {
-                    showError("❌ Замените API_KEY на ваш настоящий ключ от Google AI Studio");
+                if (GIGACHAT_CONFIG.AUTH_KEY === "ВАШ_API_КЛЮЧ") {
+                    showError("❌ Замените API_KEY на ваш настоящий ключ от GigaChat в коде HTML");
                     return;
                 }
 
@@ -340,8 +405,8 @@
                     // Формируем промт для анализа
                     const prompt = generatePrompt(match, analysisType.value);
                     
-                    // Отправляем запрос к Gemini API
-                    const analysisResult = await analyzeWithGeminiAPI(prompt);
+                    // Отправляем запрос к GigaChat API
+                    const analysisResult = await analyzeWithGigaChatAPI(prompt);
                     
                     // Показываем результат
                     displayAnalysisResult(analysisResult);
@@ -358,7 +423,7 @@
 
             // Функция для генерации промта
             function generatePrompt(match, type) {
-                let prompt = `Проанализируй футбольный матч: ${match} по следующему шаблону:\n\n`;
+                let prompt = `Проанализируй футбольный матч: ${match} по улучшенному шаблону v2.0:\n\n`;
                 
                 prompt += `🚀 УЛУЧШЕННЫЙ ШАБЛОН ДЛЯ УГЛОВЫХ v2.0\n`;
                 
@@ -384,31 +449,68 @@
                 return prompt;
             }
 
-            // Функция для отправки запроса к Gemini API
-            async function analyzeWithGeminiAPI(prompt) {
-                const requestBody = {
-                    contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
-                    }]
-                };
-
-                const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+            // Функция для получения токена доступа :cite[3]:cite[6]
+            async function getGigaChatToken() {
+                const response = await fetch(GIGACHAT_CONFIG.TOKEN_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Authorization': `Bearer ${GIGACHAT_CONFIG.AUTH_KEY}`,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json'
+                    },
+                    body: `scope=${GIGACHAT_CONFIG.SCOPE}`
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Ошибка при получении токена: ${response.status}. ${errorText}`);
+                }
+
+                const data = await response.json();
+                return data.access_token;
+            }
+
+            // Основная функция для отправки запроса к GigaChat API :cite[3]:cite[6]
+            async function analyzeWithGigaChatAPI(prompt) {
+                // 1. Сначала получаем токен
+                const accessToken = await getGigaChatToken();
+                
+                // 2. Формируем и отправляем запрос к модели :cite[6]
+                const requestBody = {
+                    model: GIGACHAT_CONFIG.MODEL,
+                    messages: [
+                        {
+                            role: "user",
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 2000,
+                    temperature: 0.7
+                };
+
+                const response = await fetch(GIGACHAT_CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify(requestBody)
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`Ошибка API: ${response.status}. ${errorText}`);
                 }
 
                 const data = await response.json();
-                return data.candidates[0].content.parts[0].text;
+                
+                // Извлекаем текст ответа из структуры GigaChat API :cite[6]
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                    return data.choices[0].message.content;
+                } else {
+                    throw new Error("Неверный формат ответа от GigaChat API");
+                }
             }
 
             // Функция для отображения результата
@@ -419,7 +521,6 @@
             }
 
             function extractBettingRecommendations(fullAnalysis) {
-                // Простая логика для извлечения рекомендаций по ставкам
                 if (fullAnalysis.includes('ставк') || fullAnalysis.includes('Ставк') || fullAnalysis.includes('рекомендац')) {
                     return fullAnalysis;
                 }
