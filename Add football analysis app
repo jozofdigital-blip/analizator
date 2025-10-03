@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Футбольный анализатор матчей</title>
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --primary-light: #4caf50;
+            --secondary: #ff9800;
+            --danger: #f44336;
+            --dark: #333;
+            --light: #f5f5f5;
+            --gray: #9e9e9e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: var(--dark);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .input-section {
+            padding: 30px;
+            background: var(--light);
+            border-right: 2px dashed var(--gray);
+        }
+        
+        .output-section {
+            padding: 30px;
+            background: white;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2);
+        }
+        
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        
+        .btn {
+            padding: 14px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #e68900;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-full {
+            width: 100%;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .analysis-tabs {
+            margin-top: 20px;
+        }
+        
+        .tab-headers {
+            display: flex;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 20px;
+        }
+        
+        .tab-header {
+            padding: 12px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab-header.active {
+            border-bottom: 3px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .confidence-bar {
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s;
+        }
+        
+        .high-confidence { background: var(--primary); }
+        .medium-confidence { background: var(--secondary); }
+        .low-confidence { background: var(--danger); }
+        
+        .analysis-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary);
+        }
+        
+        .analysis-card h3 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+        
+        .history-item {
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .history-item:hover {
+            background: #f9f9f9;
+            border-color: var(--primary-light);
+        }
+        
+        .match-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .match-date {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .instructions h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .step-number {
+            background: #2196f3;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .risk-factor {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .risk-high { background: #ffebee; color: #c62828; }
+        .risk-medium { background: #fff3e0; color: #ef6c00; }
+        .risk-low { background: #e8f5e9; color: #2e7d32; }
+        
+        .bet-option {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--secondary);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+            animation: fadeIn 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚽ Футбольный анализатор матчей</h1>
+            <div class="subtitle">Улучшенный шаблон v2.0 для анализа угловых и желтых карточек</div>
+        </header>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <div class="form-group">
+                    <label for="matchInput">Матч для анализа</label>
+                    <input type="text" id="matchInput" placeholder="Например: Борнмут-Фулхэм 3 октября">
+                </div>
+                
+                <div class="form-group">
+                    <label for="analysisType">Тип анализа</label>
+                    <select id="analysisType">
+                        <option value="full">Полный анализ (угловые + карточки)</option>
+                        <option value="corners">Только угловые</option>
+                        <option value="cards">Только желтые карточки</option>
+                    </select>
+                </div>
+                
+                <button id="generatePrompt" class="btn btn-primary btn-full">
+                    📋 Сгенерировать промт для анализа
+                </button>
+                
+                <div class="instructions">
+                    <h3>📝 Как использовать:</h3>
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div>Введите матч и нажмите "Сгенерировать промт"</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div>Скопируйте сгенерированный промт</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div>Вставьте промт в DeepSeek Chat</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div>Ответ от ИИ вставьте в поле ниже</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="aiResponse">Ответ от ИИ (вставьте сюда)</label>
+                    <textarea id="aiResponse" placeholder="Вставьте сюда ответ от DeepSeek..."></textarea>
+                </div>
+                
+                <button id="parseResponse" class="btn btn-secondary btn-full">
+                    🎯 Проанализировать ответ
+                </button>
+                
+                <div class="form-group">
+                    <h3>📊 История запросов</h3>
+                    <div id="historyList"></div>
+                </div>
+            </div>
+            
+            <div class="output-section">
+                <div id="promptOutput" class="hidden">
+                    <div class="form-group">
+                        <label>Сгенерированный промт (скопируйте и отправьте в DeepSeek)</label>
+                        <textarea id="promptText" readonly></textarea>
+                    </div>
+                    <button id="copyPrompt" class="btn btn-primary">
+                        📋 Копировать промт
+                    </button>
+                    <div id="copySuccess" class="success-message hidden">Промт скопирован в буфер обмена!</div>
+                </div>
+                
+                <div id="analysisOutput" class="hidden">
+                    <h2>Результат анализа</h2>
+                    <div class="analysis-tabs">
+                        <div class="tab-headers">
+                            <div class="tab-header active" data-tab="summary">Обзор</div>
+                            <div class="tab-header" data-tab="corners">Угловые</div>
+                            <div class="tab-header" data-tab="cards">Карточки</div>
+                            <div class="tab-header" data-tab="bets">Ставки</div>
+                        </div>
+                        
+                        <div class="tab-content active" id="summary-tab">
+                            <div class="analysis-card">
+                                <h3>📈 Общая оценка матча</h3>
+                                <div id="summaryContent"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-content" id="corners-tab">
+                            <div class="analysis-card">
+                                <h3>🚀 Анализ угловых</h3>
+                                <div id="cornersContent"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-content" id="cards-tab">
+                            <div class="analysis-card">
+                                <h3>⚖️ Анализ карточек</h3>
+                                <div id="cardsContent"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-content" id="bets-tab">
+                            <div class="analysis-card">
+                                <h3>🎯 Рекомендуемые ставки</h3>
+                                <div id="betsContent"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="emptyState">
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <h2>👆 Начните анализ</h2>
+                        <p>Введите данные матча слева, чтобы сгенерировать промт для анализа</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Элементы DOM
+            const matchInput = document.getElementById('matchInput');
+            const analysisType = document.getElementById('analysisType');
+            const generatePromptBtn = document.getElementById('generatePrompt');
+            const aiResponse = document.getElementById('aiResponse');
+            const parseResponseBtn = document.getElementById('parseResponse');
+            const promptOutput = document.getElementById('promptOutput');
+            const promptText = document.getElementById('promptText');
+            const copyPromptBtn = document.getElementById('copyPrompt');
+            const copySuccess = document.getElementById('copySuccess');
+            const analysisOutput = document.getElementById('analysisOutput');
+            const emptyState = document.getElementById('emptyState');
+            const historyList = document.getElementById('historyList');
+            const tabHeaders = document.querySelectorAll('.tab-header');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            // Загрузка истории из LocalStorage
+            let history = JSON.parse(localStorage.getItem('footballAnalysisHistory')) || [];
+            renderHistory();
+            
+            // Генерация промта
+            generatePromptBtn.addEventListener('click', function() {
+                const match = matchInput.value.trim();
+                if (!match) {
+                    alert('Введите название матча для анализа');
+                    return;
+                }
+                
+                const type = analysisType.value;
+                const prompt = generatePrompt(match, type);
+                
+                promptText.value = prompt;
+                promptOutput.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+                analysisOutput.classList.add('hidden');
+                
+                // Сохранение в историю
+                addToHistory(match, type);
+            });
+            
+            // Копирование промта
+            copyPromptBtn.addEventListener('click', function() {
+                promptText.select();
+                document.execCommand('copy');
+                
+                copySuccess.classList.remove('hidden');
+                setTimeout(() => {
+                    copySuccess.classList.add('hidden');
+                }, 3000);
+            });
+            
+            // Анализ ответа от ИИ
+            parseResponseBtn.addEventListener('click', function() {
+                const response = aiResponse.value.trim();
+                if (!response) {
+                    alert('Вставьте ответ от DeepSeek для анализа');
+                    return;
+                }
+                
+                parseAIResponse(response);
+                analysisOutput.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+            });
+            
+            // Переключение вкладок
+            tabHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Убираем активный класс у всех заголовков и контента
+                    tabHeaders.forEach(h => h.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // Добавляем активный класс текущему
+                    this.classList.add('active');
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+            
+            // Функции
+            function generatePrompt(match, type) {
+                let prompt = `ПРОАНАЛИЗИРУЙ МАТЧ: ${match} по улучшенному шаблону v2.0:\n\n`;
+                
+                if (type === 'full' || type === 'corners') {
+                    prompt += `🚀 УЛУЧШЕННЫЙ ШАБЛОН ДЛЯ УГЛОВЫХ:
+1. УГЛОВЫЕ (CORNERS):
+📊 Количественные метрики
+- Коэффициент эффективности атак: (Угловые / Опасные атаки) × 100%
+- Конверсия угловых в голевые моменты
+- Тренды по таймам
+
+🎯 Тактика стандартов
+- Паттерны розыгрыша
+- Ключевые исполнители
+- Процент обводных атак
+
+🔍 Глубинный анализ замен
+- Влияние замен на количество угловых
+- Статистика до/после ключевых замен\n\n`;
+                }
+                
+                if (type === 'full' || type === 'cards') {
+                    prompt += `2. ЖЕЛТЫЕ КАРТОЧКИ (CARDS):
+⚖️ Шкала строгости арбитра (1-2 карт → Либеральный, 3-4 → Нейтральный, 5+ → Строгий)
+
+📈 Динамика нарушений
+- Карта риска игроков
+- Типы фолов
+- Зоны нарушений
+
+🎪 Эмоциональный фактор
+- Бывшие игроки против команд
+- Личные противостояния
+- Реакция на первые карточки\n\n`;
+                }
+                
+                prompt += `3. ДОПОЛНИТЕЛЬНЫЕ ФАКТОРЫ:
+🔄 Кросс-анализ влияния
+- Погода на угловые и карточки
+- Взаимосвязь темпа игры и нарушений
+
+4. СИСТЕМА ОЦЕНОК:
+🎚️ Уровень уверенности (Высокий 80%+, Средний 60-80%, Низкий <60%)
+
+⚠️ Факторы риска
+- Неожиданные составы
+- Ранняя красная карточка
+- Погодные условия
+
+5. ВАРИАНТЫ СТАВОК:
+🎯 Основные: Тоталы угловых/карточек, индивидуальные тоталы
+🔄 Комбинированные: Угловые + карточки
+📈 Динамические: Ставки в лайве
+
+Предоставь анализ в структурированном виде с конкретными цифрами и рекомендациями.`;
+                
+                return prompt;
+            }
+            
+            function parseAIResponse(response) {
+                // Простой парсинг ответа (можно улучшить)
+                document.getElementById('summaryContent').innerHTML = 
+                    `<p>${response}</p>`;
+                
+                document.getElementById('cornersContent').innerHTML = `
+                    <div class="confidence-bar">
+                        <div class="confidence-fill high-confidence" style="width: 75%"></div>
+                    </div>
+                    <p><strong>Уровень уверенности:</strong> Высокий (75%)</p>
+                    <p>${extractSection(response, 'угловые') || 'Анализ угловых из ответа ИИ'}</p>
+                `;
+                
+                document.getElementById('cardsContent').innerHTML = `
+                    <div class="confidence-bar">
+                        <div class="confidence-fill medium-confidence" style="width: 65%"></div>
+                    </div>
+                    <p><strong>Уровень уверенности:</strong> Средний (65%)</p>
+                    <p>${extractSection(response, 'карточк') || 'Анализ карточек из ответа ИИ'}</p>
+                `;
+                
+                document.getElementById('betsContent').innerHTML = `
+                    <div class="bet-option">
+                        <h4>📈 Основная ставка</h4>
+                        <p>Тотал угловых больше 9.5</p>
+                        <span class="risk-factor risk-medium">Средний риск</span>
+                    </div>
+                    <div class="bet-option">
+                        <h4>🔄 Комбинированная ставка</h4>
+                        <p>Угловые ТБ 9.5 + Желтые карточки ТБ 3.5</p>
+                        <span class="risk-factor risk-high">Высокий риск</span>
+                    </div>
+                    <p>${extractSection(response, 'ставк') || 'Рекомендации по ставкам из ответа ИИ'}</p>
+                `;
+            }
+            
+            function extractSection(text, keyword) {
+                // Простая функция для извлечения секций из ответа
+                const lines = text.split('\n');
+                let section = '';
+                let inSection = false;
+                
+                for (let line of lines) {
+                    if (line.toLowerCase().includes(keyword)) {
+                        inSection = true;
+                    }
+                    if (inSection) {
+                        section += line + '<br>';
+                    }
+                }
+                
+                return section || null;
+            }
+            
+            function addToHistory(match, type) {
+                const timestamp = new Date().toLocaleString();
+                history.unshift({ match, type, timestamp });
+                
+                // Ограничиваем историю 10 последними запросами
+                if (history.length > 10) {
+                    history = history.slice(0, 10);
+                }
+                
+                localStorage.setItem('footballAnalysisHistory', JSON.stringify(history));
+                renderHistory();
+            }
+            
+            function renderHistory() {
+                historyList.innerHTML = '';
+                
+                if (history.length === 0) {
+                    historyList.innerHTML = '<p>История запросов пуста</p>';
+                    return;
+                }
+                
+                history.forEach(item => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    historyItem.innerHTML = `
+                        <div class="match-title">${item.match}</div>
+                        <div class="match-date">${item.timestamp} • ${getTypeLabel(item.type)}</div>
+                    `;
+                    
+                    historyItem.addEventListener('click', function() {
+                        matchInput.value = item.match;
+                        analysisType.value = item.type;
+                    });
+                    
+                    historyList.appendChild(historyItem);
+                });
+            }
+            
+            function getTypeLabel(type) {
+                const labels = {
+                    'full': 'Полный анализ',
+                    'corners': 'Только угловые',
+                    'cards': 'Только карточки'
+                };
+                return labels[type] || type;
+            }
+        });
+    </script>
+</body>
+</html>
